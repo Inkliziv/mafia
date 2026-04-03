@@ -70,7 +70,7 @@ export default function HostPage() {
 
   async function startGame() {
     if (!room || !isHost) return;
-    const players = Object.values(room.players);
+    const players = Object.values(room.players || {});
     if (players.length < 3) {
       alert(t('host_needs_more'));
       return;
@@ -112,7 +112,7 @@ export default function HostPage() {
     setActionLoading(true);
 
     try {
-      const players = Object.values(room.players);
+      const players = Object.values(room.players || {});
       const alivePlayers = players.filter(p => p.isAlive);
 
       const mafiaKillTarget = resolveMafiaVotes(room.mafiaVotes || {});
@@ -199,7 +199,7 @@ export default function HostPage() {
     setActionLoading(true);
 
     try {
-      const players = Object.values(room.players);
+      const players = Object.values(room.players || {});
       const eliminatedId = resolveVotes(room.votes || {}, players);
 
       const updates: Record<string, unknown> = {
@@ -250,7 +250,7 @@ export default function HostPage() {
     if (!room || !isHost) return;
     if (!confirm('Reboot / Qayta boshlash?')) return;
 
-    const players = Object.values(room.players).map(p => ({
+    const players = Object.values(room.players || {}).map(p => ({
       ...p,
       role: null,
       isAlive: true,
@@ -314,7 +314,7 @@ export default function HostPage() {
     );
   }
 
-  const players = Object.values(room.players).sort((a, b) => a.joinedAt - b.joinedAt);
+  const players = Object.values(room.players || {}).sort((a, b) => a.joinedAt - b.joinedAt);
   const alivePlayers = players.filter(p => p.isAlive);
   const nightActionsComplete = (() => {
     if (!room.settings) return false;
