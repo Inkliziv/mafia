@@ -477,7 +477,7 @@ export default function HostPage() {
             {room.phase === 'lobby' && (
               <div className="card border-indigo-900/40 bg-indigo-950/20">
                 <h2 className="text-lg font-bold text-indigo-300 mb-4 uppercase tracking-widest">O'yin Sozlamalari</h2>
-                <div className="space-y-3">
+              <div className="space-y-3">
                   <p className="text-indigo-200/70 text-sm">
                     {allPlayers.length < 3
                       ? `Kutish kerak (kamida 3 tasi. Hozir: ${allPlayers.length})`
@@ -490,6 +490,16 @@ export default function HostPage() {
                   >
                     {actionLoading ? t('loading') : t('host_start_btn')}
                   </button>
+                  {/* Admin joins as player too */}
+                  <a
+                    href={joinUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn-secondary w-full text-sm flex items-center justify-center gap-2"
+                  >
+                    📱 O'yinga o'zim ham qo'shilish
+                  </a>
+                  <p className="text-xs text-gray-600 text-center">↑ Buni telefonda oching, moderator paneli bu ekranda qoladi</p>
                 </div>
               </div>
             )}

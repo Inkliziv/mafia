@@ -21,14 +21,16 @@
 
 @layer components {
   .btn-primary {
-    @apply bg-red-700 hover:bg-red-600 text-white font-semibold py-3 px-6 rounded-lg
+    @apply bg-red-700 hover:bg-red-600 text-white font-semibold py-3 px-6 rounded-xl
            transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed
-           active:scale-95 shadow-lg shadow-red-900/30;
+           active:scale-95 shadow-lg shadow-red-900/30 select-none touch-manipulation;
+    min-height: 48px;
   }
 
   .btn-secondary {
-    @apply bg-gray-800 hover:bg-gray-700 text-gray-200 font-semibold py-3 px-6 rounded-lg
-           transition-all duration-200 border border-gray-700 active:scale-95;
+    @apply bg-gray-800 hover:bg-gray-700 text-gray-200 font-semibold py-3 px-6 rounded-xl
+           transition-all duration-200 border border-gray-700 active:scale-95 select-none touch-manipulation;
+    min-height: 48px;
   }
 
   .btn-danger {
