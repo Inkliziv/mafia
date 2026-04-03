@@ -190,18 +190,28 @@ export default function PlayPage() {
     <div className={`min-h-screen pb-24 transition-colors duration-1000 ${
       room.phase === 'night' ? 'phase-night' : room.phase === 'day' ? 'phase-day' : 'bg-gray-950'
     }`}>
-      <div className="bg-gray-900/80 backdrop-blur-md sticky top-0 z-50 border-b border-gray-800 p-4 shadow-lg">
+      <div className="bg-gray-900/80 backdrop-blur-md sticky top-0 z-50 border-b border-gray-800 p-3 shadow-lg">
         <div className="max-w-md mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center font-bold text-lg text-white border-2 border-gray-700">
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg text-white border-2 ${
+              me.role === 'mafia' ? 'bg-red-900 border-red-600' :
+              me.role === 'commissioner' ? 'bg-yellow-900 border-yellow-600' :
+              me.role === 'doctor' ? 'bg-green-900 border-green-600' :
+              'bg-gray-800 border-gray-700'
+            }`}>
               {me.name.charAt(0).toUpperCase()}
             </div>
             <div>
-              <p className="text-white font-bold">{me.name}</p>
-              {me.role && (
-                <p className={`text-xs font-semibold ${getRoleColor(me.role)}`}>
-                  {getRoleLabel(me.role, t)}
-                </p>
+              <p className="text-white font-bold text-sm">{me.name}</p>
+              {me.role && room.phase !== 'lobby' && (
+                <div className={`text-xs font-bold px-2 py-0.5 rounded-full inline-block ${
+                  me.role === 'mafia' ? 'bg-red-900/60 text-red-300' :
+                  me.role === 'commissioner' ? 'bg-yellow-900/60 text-yellow-300' :
+                  me.role === 'doctor' ? 'bg-green-900/60 text-green-300' :
+                  'bg-gray-700 text-gray-300'
+                }`}>
+                  {me.role === 'mafia' ? '🔪' : me.role === 'commissioner' ? '⭐' : me.role === 'doctor' ? '💚' : '👤'} {getRoleLabel(me.role, t)}
+                </div>
               )}
             </div>
           </div>
@@ -220,10 +230,20 @@ export default function PlayPage() {
       <div className="max-w-md mx-auto p-4 mt-4 space-y-6">
         
         {!me.isAlive && (
-          <div className="bg-red-950/80 border border-red-900 p-4 rounded-xl text-center shadow-xl animate-fade-in">
-            <div className="text-5xl mb-2">👻</div>
-            <h2 className="text-xl font-bold text-red-400">{t('you_died')}</h2>
-            <p className="text-red-200 mt-2 text-sm">{t('play_dead_desc')}</p>
+          <div className="bg-gradient-to-b from-red-950 to-gray-950 border border-red-900/60 p-5 rounded-2xl text-center shadow-2xl animate-fade-in">
+            <div className="text-5xl mb-3">👻</div>
+            <h2 className="text-xl font-bold text-red-400 uppercase tracking-widest">{t('you_died')}</h2>
+            <p className="text-red-200/80 mt-2 text-sm">{t('play_dead_desc')}</p>
+            {me.role && (
+              <div className={`mt-4 inline-block px-4 py-2 rounded-xl text-sm font-bold border ${
+                me.role === 'mafia' ? 'bg-red-900/50 border-red-700 text-red-300' :
+                me.role === 'commissioner' ? 'bg-yellow-900/50 border-yellow-700 text-yellow-300' :
+                me.role === 'doctor' ? 'bg-green-900/50 border-green-700 text-green-300' :
+                'bg-gray-800 border-gray-600 text-gray-300'
+              }`}>
+                Sizning rolingiz: {getRoleLabel(me.role, t)}
+              </div>
+            )}
           </div>
         )}
 
@@ -313,33 +333,72 @@ export default function PlayPage() {
         )}
 
         {room.phase === 'ended' && (
-          <div className={`card text-center border-2 ${room.result === 'mafia-wins' ? 'border-red-600' : 'border-green-500'}`}>
-            <div className="text-6xl mb-4">{room.result === 'mafia-wins' ? '💀' : '🎉'}</div>
-            <h2 className="text-2xl font-bold text-white mb-2">
-              {room.result === 'mafia-wins' ? t('play_win_mafia') : t('play_win_citizen')}
-            </h2>
-            <p className="text-gray-400 mb-6">{t('play_recap_ended')}</p>
+          <div className={`rounded-2xl shadow-2xl overflow-hidden border-2 ${room.result === 'mafia-wins' ? 'border-red-600 bg-gradient-to-b from-red-950 to-gray-950' : 'border-green-500 bg-gradient-to-b from-green-950 to-gray-950'}`}>
+            <div className="text-center py-8 px-4">
+              <div className="text-8xl mb-4 animate-float">{room.result === 'mafia-wins' ? '💀' : '🎉'}</div>
+              <h2 className={`text-3xl font-bold uppercase tracking-widest mb-2 ${ room.result === 'mafia-wins' ? 'text-red-400' : 'text-green-400'}`}
+                  style={{ fontFamily: 'Georgia, serif', textShadow: room.result === 'mafia-wins' ? '0 0 20px rgba(239,68,68,0.6)' : '0 0 20px rgba(34,197,94,0.6)' }}>
+                {room.result === 'mafia-wins' ? t('play_win_mafia') : t('play_win_citizen')}
+              </h2>
+              <p className="text-gray-400 text-sm mb-2">{room.result === 'mafia-wins' ? "Shahar mafiyaga mag'lub bo'ldi..." : "Tinch odamlar g'alaba qozondi!"}</p>
+            </div>
 
-            <div className="space-y-2 text-left">
-              {allPlayers.map(p => (
-                <div key={p.id} className="flex justify-between items-center bg-gray-900 border border-gray-800 p-2 rounded">
-                  <span className={p.isAlive ? "text-white" : "text-gray-500 line-through"}>{p.name}</span>
-                  <span className={`text-sm font-bold ${getRoleColor(p.role)}`}>{getRoleLabel(p.role, t)}</span>
-                </div>
-              ))}
+            {/* Role reveal */}
+            <div className="px-4 pb-6">
+              <div className="text-center mb-4">
+                <span className="text-xs uppercase tracking-widest text-gray-500 border border-gray-700 px-3 py-1 rounded-full">🎭 Rollar fosh bo'ldi!</span>
+              </div>
+              <div className="space-y-2">
+                {allPlayers.sort((a, b) => {
+                  const order: Record<string, number> = { mafia: 0, commissioner: 1, doctor: 2, citizen: 3 };
+                  return (order[a.role || 'citizen'] ?? 3) - (order[b.role || 'citizen'] ?? 3);
+                }).map((p, i) => (
+                  <div key={p.id}
+                    className={`flex justify-between items-center p-3 rounded-xl border animate-fade-in ${
+                      p.role === 'mafia' ? 'bg-red-950/50 border-red-800/50' :
+                      p.role === 'commissioner' ? 'bg-yellow-950/50 border-yellow-800/50' :
+                      p.role === 'doctor' ? 'bg-green-950/50 border-green-800/50' :
+                      'bg-gray-900/80 border-gray-800'
+                    }`}
+                    style={{ animationDelay: `${i * 0.08}s` }}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${p.isAlive ? 'bg-gray-700' : 'bg-gray-800'}`}>
+                        {p.isAlive ? p.name.charAt(0).toUpperCase() : '💀'}
+                      </div>
+                      <span className={p.isAlive ? 'text-white font-semibold' : 'text-gray-500 line-through'}>{p.name}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className={`text-xs font-bold px-2 py-1 rounded-full ${
+                        p.role === 'mafia' ? 'bg-red-900 text-red-300' :
+                        p.role === 'commissioner' ? 'bg-yellow-900 text-yellow-300' :
+                        p.role === 'doctor' ? 'bg-green-900 text-green-300' :
+                        'bg-gray-800 text-gray-400'
+                      }`}>
+                        {getRoleLabel(p.role, t)}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         )}
 
         {!me.isAlive && room.phase !== 'ended' && room.phase !== 'lobby' && (
-           <div className="card">
-             <h3 className="text-lg font-bold text-gray-300 mb-3">👁️ {t('ghost_view')}</h3>
+           <div className="card border-gray-700/50 bg-gray-900/60">
+             <div className="flex items-center gap-2 mb-3">
+               <span className="text-xl">👁️</span>
+               <h3 className="text-lg font-bold text-gray-300">{t('ghost_view')}</h3>
+               <span className="ml-auto text-xs bg-gray-800 px-2 py-1 rounded text-gray-500">Rollar yashirin</span>
+             </div>
              <PlayerList 
                players={allPlayers}
-               showRoles={true}
+               showRoles={false}
                currentPhase={room.phase}
                votes={room.votes}
              />
+             <p className="text-center text-xs text-gray-600 mt-4 italic">🔒 Rollar o'yin tugaganda ochiladi</p>
            </div>
         )}
 
