@@ -43,4 +43,5 @@ export interface GameRoom {
   log: string[];
   lastNightResult: NightResult | null;
   dayEndsAt?: number;
+  nightEndsAt?: number;
 }

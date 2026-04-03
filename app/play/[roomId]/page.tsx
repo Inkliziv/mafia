@@ -294,6 +294,15 @@ export default function PlayPage() {
               <p className="text-gray-400 text-center py-6">{t('play_cit_desc')}</p>
             ) : (
               <>
+                {/* Night countdown timer */}
+                {room.nightEndsAt && (
+                  <div className="mb-4">
+                    <p className="text-xs text-center uppercase tracking-widest text-gray-500 mb-1">
+                      {me.role === 'mafia' ? '⏱ Qurbon tanlash vaqti' : '⏱ Harakat vaqti'}
+                    </p>
+                    <Timer endTime={room.nightEndsAt} />
+                  </div>
+                )}
                 <p className="text-sm text-gray-400 mb-4">{t('play_action_desc')}</p>
                 <div className="space-y-2">
                   {alivePlayers

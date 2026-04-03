@@ -92,6 +92,7 @@ export default function HostPage() {
         [`rooms/${roomId}/mafiaVotes`]: {},
         [`rooms/${roomId}/votes`]: {},
         [`rooms/${roomId}/lastNightResult`]: null,
+        [`rooms/${roomId}/nightEndsAt`]: Date.now() + 15000,
         [`rooms/${roomId}/log`]: [...(room.log || []), logMsg],
       });
     } catch (err) {
@@ -232,6 +233,7 @@ export default function HostPage() {
         updates[`rooms/${roomId}/nightActions`] = { mafiaKill: null, doctorSave: null, commissionerCheck: null };
         updates[`rooms/${roomId}/mafiaVotes`] = {};
         updates[`rooms/${roomId}/lastNightResult`] = null;
+        updates[`rooms/${roomId}/nightEndsAt`] = Date.now() + 15000;
         newLog.push(`Tun ${(room.round || 1) + 1} boshlanmoqda... Qorong'ilik yana qaytdi.`);
       }
 
@@ -270,6 +272,7 @@ export default function HostPage() {
       mafiaVotes: {},
       lastNightResult: null,
       dayEndsAt: null,
+      nightEndsAt: null,
       log: ['O\'yin qayta boshlandi'],
     });
   }, [room, isHost, roomId]);
@@ -312,6 +315,20 @@ export default function HostPage() {
       }
     }
   }, [room?.phase, dayVoteCount, aliveCount, actionLoading, resolveDay]);
+
+  useEffect(() => {
+    if (room?.phase === 'night' && room.nightEndsAt && !actionLoading) {
+      const left = room.nightEndsAt - Date.now();
+      if (left <= 0) {
+        resolveNight();
+      } else {
+        const wait = setTimeout(() => {
+          resolveNight();
+        }, left);
+        return () => clearTimeout(wait);
+      }
+    }
+  }, [room?.phase, room?.nightEndsAt, actionLoading, resolveNight]);
 
   useEffect(() => {
     if (room?.phase === 'day' && room.dayEndsAt && !actionLoading) {
