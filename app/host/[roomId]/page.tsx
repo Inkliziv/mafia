@@ -149,7 +149,7 @@ export default function HostPage() {
         [`rooms/${roomId}/votes`]: {},
         [`rooms/${roomId}/nightActions`]: { mafiaKill: null, doctorSave: null, commissionerCheck: null },
         [`rooms/${roomId}/mafiaVotes`]: {},
-        [`rooms/${roomId}/dayEndsAt`]: Date.now() + 120000, 
+        [`rooms/${roomId}/dayEndsAt`]: Date.now() + 30000, 
       };
 
       if (killedId) {
