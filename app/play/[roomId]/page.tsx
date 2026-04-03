@@ -7,6 +7,7 @@ import { GameRoom, Player } from '@/types/game';
 import { getRoleLabel, getRoleColor } from '@/lib/gameLogic';
 import PlayerList from '@/components/PlayerList';
 import PhaseAnnouncement from '@/components/PhaseAnnouncement';
+import Timer from '@/components/Timer';
 import { audio } from '@/lib/sounds';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 
@@ -228,6 +229,14 @@ export default function PlayPage() {
 
         {(room.phase === 'night' || room.phase === 'day') && (
           <PhaseAnnouncement phase={room.phase} round={room.round} lastNightResult={room.lastNightResult} players={allPlayers} />
+        )}
+
+        {/* Countdown Timer for day phase */}
+        {room.phase === 'day' && room.dayEndsAt && me.isAlive && (
+          <div className="text-center">
+            <p className="text-xs uppercase tracking-widest text-gray-500 mb-1">Muhokama vaqti</p>
+            <Timer endTime={room.dayEndsAt} />
+          </div>
         )}
 
         {room.phase === 'lobby' && (

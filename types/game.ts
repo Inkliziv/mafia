@@ -42,4 +42,5 @@ export interface GameRoom {
   mafiaVotes: Record<string, string>;
   log: string[];
   lastNightResult: NightResult | null;
+  dayEndsAt?: number;
 }

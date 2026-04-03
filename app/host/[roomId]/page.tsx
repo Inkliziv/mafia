@@ -10,13 +10,13 @@ import {
   resolveVotes,
   resolveMafiaVotes,
   getRoleLabel,
-  getRoleColor,
 } from '@/lib/gameLogic';
 import { GameRoom, Player, NightResult } from '@/types/game';
 import QRCodeDisplay from '@/components/QRCodeDisplay';
 import PlayerList from '@/components/PlayerList';
 import GameLog from '@/components/GameLog';
 import PhaseAnnouncement from '@/components/PhaseAnnouncement';
+import Timer from '@/components/Timer';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 
 export default function HostPage() {
@@ -62,13 +62,7 @@ export default function HostPage() {
     return () => off(roomRef, 'value', unsubscribe);
   }, [roomId, t]);
 
-  const appendLog = useCallback((message: string) => {
-    return {
-      [`rooms/${roomId}/log`]: [...(room?.log || []), message],
-    };
-  }, [room, roomId]);
-
-  async function startGame() {
+  const startGame = useCallback(async () => {
     if (!room || !isHost) return;
     const players = Object.values(room.players || {});
     if (players.length < 3) {
@@ -105,14 +99,15 @@ export default function HostPage() {
       alert('Error');
     }
     setActionLoading(false);
-  }
+  }, [room, isHost, roomId, t]);
 
-  async function resolveNight() {
-    if (!room || !isHost) return;
+  const resolveNight = useCallback(async () => {
+    if (!room || !isHost || actionLoading) return;
     setActionLoading(true);
 
     try {
-      const players = Object.values(room.players || {});
+      const ObjectValues = Object.values(room.players || {});
+      const players = ObjectValues;
       const alivePlayers = players.filter(p => p.isAlive);
 
       const mafiaKillTarget = resolveMafiaVotes(room.mafiaVotes || {});
@@ -154,6 +149,7 @@ export default function HostPage() {
         [`rooms/${roomId}/votes`]: {},
         [`rooms/${roomId}/nightActions`]: { mafiaKill: null, doctorSave: null, commissionerCheck: null },
         [`rooms/${roomId}/mafiaVotes`]: {},
+        [`rooms/${roomId}/dayEndsAt`]: Date.now() + 120000, 
       };
 
       if (killedId) {
@@ -168,11 +164,11 @@ export default function HostPage() {
       let logMsg = '';
       if (killedId) {
         const killedPlayer = players.find(p => p.id === killedId);
-        logMsg = `Tun ${room.round}: ${killedPlayer?.name || 'Noma\'lum'} o'ldirildi`;
+        logMsg = `Tun ${room.round}: ${killedPlayer?.name || 'Noma\'lum'} qurbon bo'ldi! 💀`;
       } else if (savedById) {
-        logMsg = `Tun ${room.round}: Shifokor kimnidir qutqardi! Hech kim o'lmadi`;
+        logMsg = `Tun ${room.round}: Mo'jiza tufayli hech kim o'lmadi! 💚`;
       } else {
-        logMsg = `Tun ${room.round}: Hech kim o'ldirilmadi`;
+        logMsg = `Tun ${room.round}: Qorong'ida adashib qolishdi, hech kim o'ldirilmadi.`;
       }
 
       const newLog = [...(room.log || []), logMsg];
@@ -180,7 +176,8 @@ export default function HostPage() {
       if (winResult) {
         updates[`rooms/${roomId}/phase`] = 'ended';
         updates[`rooms/${roomId}/result`] = winResult;
-        const endMsg = winResult === 'citizens-win' ? 'Shaharliklar yutdi! 🎉' : 'Mafiya yutdi! 💀';
+        updates[`rooms/${roomId}/dayEndsAt`] = null;
+        const endMsg = winResult === 'citizens-win' ? 'Tinch fuqarolar aql bilan g\'alaba qozondi! 🎉' : "Mafiya shaharni to'liq nazoratiga oldi! 💀";
         newLog.push(endMsg);
       }
 
@@ -192,10 +189,10 @@ export default function HostPage() {
       alert('Error');
     }
     setActionLoading(false);
-  }
+  }, [room, isHost, roomId, actionLoading]);
 
-  async function resolveDay() {
-    if (!room || !isHost) return;
+  const resolveDay = useCallback(async () => {
+    if (!room || !isHost || actionLoading) return;
     setActionLoading(true);
 
     try {
@@ -204,6 +201,7 @@ export default function HostPage() {
 
       const updates: Record<string, unknown> = {
         [`rooms/${roomId}/votes`]: {},
+        [`rooms/${roomId}/dayEndsAt`]: null, 
       };
 
       let logMsg = '';
@@ -212,12 +210,12 @@ export default function HostPage() {
       if (eliminatedId) {
         updates[`rooms/${roomId}/players/${eliminatedId}/isAlive`] = false;
         const eliminatedPlayer = players.find(p => p.id === eliminatedId);
-        logMsg = `Kun ${room.round}: ${eliminatedPlayer?.name || 'Noma\'lum'} ovoz bilan chiqarib yuborildi (${getRoleLabel(eliminatedPlayer?.role || null)})`;
+        logMsg = `Kun ${room.round}: ${eliminatedPlayer?.name || 'Noma\'lum'} omma hukmi bilan shahardan haydaldi!`;
         updatedPlayers = players.map(p =>
           p.id === eliminatedId ? { ...p, isAlive: false } : p
         );
       } else {
-        logMsg = `Kun ${room.round}: Ovozlar teng bo'lindi, hech kim chiqarilmadi`;
+        logMsg = `Kun ${room.round}: Shahar ahlida kelishuv bo'lmadi, qamoqqa hech kim tushmadi.`;
       }
 
       const newLog = [...(room.log || []), logMsg];
@@ -226,7 +224,7 @@ export default function HostPage() {
       if (winResult) {
         updates[`rooms/${roomId}/phase`] = 'ended';
         updates[`rooms/${roomId}/result`] = winResult;
-        const endMsg = winResult === 'citizens-win' ? 'Shaharliklar yutdi! 🎉' : 'Mafiya yutdi! 💀';
+        const endMsg = winResult === 'citizens-win' ? 'Tinch fuqarolar aql bilan g\'alaba qozondi! 🎉' : "Mafiya shaharni to'liq nazoratiga oldi! 💀";
         newLog.push(endMsg);
       } else {
         updates[`rooms/${roomId}/phase`] = 'night';
@@ -234,7 +232,7 @@ export default function HostPage() {
         updates[`rooms/${roomId}/nightActions`] = { mafiaKill: null, doctorSave: null, commissionerCheck: null };
         updates[`rooms/${roomId}/mafiaVotes`] = {};
         updates[`rooms/${roomId}/lastNightResult`] = null;
-        newLog.push(`Tun ${(room.round || 1) + 1} boshlandi...`);
+        newLog.push(`Tun ${(room.round || 1) + 1} boshlanmoqda... Qorong'ilik yana qaytdi.`);
       }
 
       updates[`rooms/${roomId}/log`] = newLog;
@@ -244,9 +242,9 @@ export default function HostPage() {
       alert('Error');
     }
     setActionLoading(false);
-  }
+  }, [room, isHost, roomId, actionLoading]);
 
-  async function resetGame() {
+  const resetGame = useCallback(async () => {
     if (!room || !isHost) return;
     if (!confirm('Reboot / Qayta boshlash?')) return;
 
@@ -271,9 +269,63 @@ export default function HostPage() {
       nightActions: { mafiaKill: null, doctorSave: null, commissionerCheck: null },
       mafiaVotes: {},
       lastNightResult: null,
+      dayEndsAt: null,
       log: ['O\'yin qayta boshlandi'],
     });
-  }
+  }, [room, isHost, roomId]);
+
+  const allPlayers = Object.values(room?.players || {}).sort((a, b) => a.joinedAt - b.joinedAt);
+  const alivePlayers = allPlayers.filter(p => p.isAlive);
+  
+  const nightActionsComplete = (() => {
+    if (!room?.settings) return false;
+    const mPlayers = alivePlayers.filter(p => p.role === 'mafia');
+    const mafiaVoted = Object.keys(room.mafiaVotes || {}).length > 0;
+    const doctorDone = !room.settings.hasDoctor ||
+      alivePlayers.every(p => p.role !== 'doctor') ||
+      !!room.nightActions?.doctorSave;
+    const commDone = !room.settings.hasCommissioner ||
+      alivePlayers.every(p => p.role !== 'commissioner') ||
+      !!room.nightActions?.commissionerCheck;
+    return (mafiaVoted || mPlayers.length === 0) && doctorDone && commDone;
+  })();
+
+  const dayVoteCount = Object.keys(room?.votes || {}).length;
+  const aliveCount = alivePlayers.length;
+
+  useEffect(() => {
+    if (room?.phase === 'night' && nightActionsComplete && !actionLoading) {
+      const wait = setTimeout(() => {
+        resolveNight();
+      }, 4000); 
+      return () => clearTimeout(wait);
+    }
+  }, [room?.phase, nightActionsComplete, actionLoading, resolveNight]);
+
+  useEffect(() => {
+    if (room?.phase === 'day' && !actionLoading) {
+      if (dayVoteCount === aliveCount && aliveCount > 0) {
+        const wait = setTimeout(() => {
+          resolveDay();
+        }, 3000);
+        return () => clearTimeout(wait);
+      }
+    }
+  }, [room?.phase, dayVoteCount, aliveCount, actionLoading, resolveDay]);
+
+  useEffect(() => {
+    if (room?.phase === 'day' && room.dayEndsAt && !actionLoading) {
+      const left = room.dayEndsAt - Date.now();
+      if (left <= 0) {
+        resolveDay();
+      } else {
+        const wait = setTimeout(() => {
+          resolveDay();
+        }, left);
+        return () => clearTimeout(wait);
+      }
+    }
+  }, [room?.phase, room?.dayEndsAt, actionLoading, resolveDay]);
 
   if (loading) {
     return (
@@ -314,24 +366,6 @@ export default function HostPage() {
     );
   }
 
-  const players = Object.values(room.players || {}).sort((a, b) => a.joinedAt - b.joinedAt);
-  const alivePlayers = players.filter(p => p.isAlive);
-  const nightActionsComplete = (() => {
-    if (!room.settings) return false;
-    const mafiaPlayers = alivePlayers.filter(p => p.role === 'mafia');
-    const mafiaVoted = Object.keys(room.mafiaVotes || {}).length > 0;
-    const doctorDone = !room.settings.hasDoctor ||
-      alivePlayers.every(p => p.role !== 'doctor') ||
-      !!room.nightActions?.doctorSave;
-    const commDone = !room.settings.hasCommissioner ||
-      alivePlayers.every(p => p.role !== 'commissioner') ||
-      !!room.nightActions?.commissionerCheck;
-    return mafiaVoted || mafiaPlayers.length === 0;
-  })();
-
-  const dayVoteCount = Object.keys(room.votes || {}).length;
-  const aliveCount = alivePlayers.length;
-
   return (
     <div className="min-h-screen">
       <div
@@ -343,12 +377,11 @@ export default function HostPage() {
       <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-white">
-              🎭 {t('host_panel')}
+            <h1 className="text-4xl font-bold text-white uppercase tracking-widest text-shadow-glow" style={{ fontFamily: "Georgia, serif" }}>
+              МАФИЯ
             </h1>
             <p className="text-gray-400 text-sm mt-1">
-              {t('host_room')}: <span className="font-mono text-white font-bold tracking-widest">{roomId}</span>
-              {' '} • {room.hostName}
+              RUM: <span className="font-mono text-white font-bold tracking-widest">{roomId}</span>
             </p>
           </div>
           <div className="flex gap-2">
@@ -360,17 +393,27 @@ export default function HostPage() {
           </div>
         </div>
 
-        {(room.phase === 'night' || room.phase === 'day') && (
-          <PhaseAnnouncement phase={room.phase} round={room.round} lastNightResult={room.lastNightResult} players={players} />
-        )}
+        {/* Projector Phase Information Display */}
+        <div className="text-center py-6">
+          {(room.phase === 'night' || room.phase === 'day') && (
+            <PhaseAnnouncement phase={room.phase} round={room.round} lastNightResult={room.lastNightResult} players={allPlayers} />
+          )}
+          
+          {room.phase === 'day' && room.dayEndsAt && (
+             <div className="mt-6 mb-2">
+                <p className="text-gray-400 text-sm uppercase tracking-widest">Muhokama vaqti:</p>
+                <Timer endTime={room.dayEndsAt} onExpire={resolveDay} />
+             </div>
+          )}
+        </div>
 
         {room.phase === 'ended' && (
-          <div className={`card text-center py-8 ${room.result === 'mafia-wins' ? 'border-red-800' : 'border-green-800'}`}>
-            <div className="text-6xl mb-4">{room.result === 'mafia-wins' ? '💀' : '🎉'}</div>
-            <h2 className={`text-3xl font-bold mb-2 ${room.result === 'mafia-wins' ? 'text-red-400' : 'text-green-400'}`}>
+          <div className={`card text-center py-12 shadow-2xl ${room.result === 'mafia-wins' ? 'border-red-600 bg-red-950/40' : 'border-green-600 bg-green-950/40'}`}>
+            <div className="text-7xl mb-6 animate-float">{room.result === 'mafia-wins' ? '💀' : '🎉'}</div>
+            <h2 className={`text-4xl font-bold mb-4 uppercase ${room.result === 'mafia-wins' ? 'text-red-400' : 'text-green-400'}`}>
               {t('host_ended')}
             </h2>
-            <p className={`text-xl ${room.result === 'mafia-wins' ? 'text-red-300' : 'text-green-300'}`}>
+            <p className={`text-2xl font-serif ${room.result === 'mafia-wins' ? 'text-red-200' : 'text-green-200'}`}>
               {room.result === 'mafia-wins' ? t('host_win_mafia') : t('host_win_citizen')}
             </p>
           </div>
@@ -379,167 +422,62 @@ export default function HostPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="space-y-6">
             {room.phase === 'lobby' && joinUrl && (
-              <div className="card">
-                <h2 className="text-lg font-bold text-white mb-4">📱 {t('host_qr_title')}</h2>
-                <QRCodeDisplay url={joinUrl} roomId={roomId} />
+              <div className="card text-center shadow-2xl">
+                <h2 className="text-2xl font-bold text-white mb-6 uppercase tracking-wider">Lobbyga qoshilish</h2>
+                <div className="flex justify-center mb-6">
+                   <QRCodeDisplay url={joinUrl} roomId={roomId} />
+                </div>
+                <p className="text-gray-400">QR ni skanerlang yoki sayt orqali kodni yozing: <strong className="text-white text-xl ml-2">{roomId}</strong></p>
               </div>
             )}
 
-            <div className="card">
+            <div className="card border-0 bg-gray-900/60 backdrop-blur-md">
               <h2 className="text-lg font-bold text-white mb-4 flex items-center justify-between">
-                <span>👥 {t('host_players_title')} ({players.length})</span>
-                <span className="text-sm font-normal text-gray-400">
-                  {alivePlayers.length} {t('host_alive')}
+                <span className="uppercase tracking-widest text-shadow-glow">Ishtirokchilar ({allPlayers.length})</span>
+                <span className="text-sm font-normal text-amber-500">
+                  {alivePlayers.length} ta tirik
                 </span>
               </h2>
+              {/* Projector mode: Hide roles! */}
               <PlayerList
-                players={players}
-                showRoles={true}
+                players={allPlayers}
+                showRoles={false} 
                 votes={room.votes}
                 currentPhase={room.phase}
                 highlightPlayerId={undefined}
               />
             </div>
-
-            {room.phase === 'night' && (
-              <div className="card">
-                <h2 className="text-lg font-bold text-white mb-4">🌙 {t('host_night_actions')}</h2>
-                <div className="space-y-2 text-sm">
-                  <div className={`flex items-center gap-2 p-2 rounded ${Object.keys(room.mafiaVotes || {}).length > 0 ? 'text-green-400' : 'text-gray-500'}`}>
-                    {Object.keys(room.mafiaVotes || {}).length > 0 ? '✅' : '⏳'}
-                    <span>{t('host_mafia_voted')} ({Object.keys(room.mafiaVotes || {}).length}/{alivePlayers.filter(p => p.role === 'mafia').length})</span>
-                  </div>
-                  {room.settings?.hasDoctor && alivePlayers.some(p => p.role === 'doctor') && (
-                    <div className={`flex items-center gap-2 p-2 rounded ${room.nightActions?.doctorSave ? 'text-green-400' : 'text-gray-500'}`}>
-                      {room.nightActions?.doctorSave ? '✅' : '⏳'}
-                      <span>{room.nightActions?.doctorSave ? t('host_doctor_done') : t('host_doctor_wait')}</span>
-                    </div>
-                  )}
-                  {room.settings?.hasCommissioner && alivePlayers.some(p => p.role === 'commissioner') && (
-                    <div className={`flex items-center gap-2 p-2 rounded ${room.nightActions?.commissionerCheck ? 'text-green-400' : 'text-gray-500'}`}>
-                      {room.nightActions?.commissionerCheck ? '✅' : '⏳'}
-                      <span>{room.nightActions?.commissionerCheck ? t('host_comm_done') : t('host_comm_wait')}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {room.phase === 'day' && (
-              <div className="card">
-                <h2 className="text-lg font-bold text-white mb-4">☀️ {t('host_votes')}</h2>
-                <p className="text-gray-400 text-sm mb-3">
-                  {dayVoteCount} / {aliveCount} {t('host_votes_cast')}
-                </p>
-                <div className="w-full bg-gray-800 rounded-full h-2 mb-3">
-                  <div
-                    className="bg-amber-600 h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${aliveCount > 0 ? (dayVoteCount / aliveCount) * 100 : 0}%` }}
-                  />
-                </div>
+            
+            {(room.phase === 'night' || room.phase === 'day') && (
+              <div className="mt-4 text-center">
+                 <p className="text-gray-500 text-sm animate-pulse">O'yin avtomatik ravishda boshqarilmoqda...</p>
+                 <p className="text-gray-600 text-xs mt-1">Harakat bajaringiz bilan ekran sahnalari o'zgaradi.</p>
               </div>
             )}
           </div>
 
           <div className="space-y-6">
-            <div className="card">
-              <h2 className="text-lg font-bold text-white mb-4">🎮 {t('host_controls')}</h2>
-
-              {room.phase === 'lobby' && (
+            {room.phase === 'lobby' && (
+              <div className="card border-indigo-900/40 bg-indigo-950/20">
+                <h2 className="text-lg font-bold text-indigo-300 mb-4 uppercase tracking-widest">O'yin Sozlamalari</h2>
                 <div className="space-y-3">
-                  <p className="text-gray-400 text-sm">
-                    {players.length < 3
-                      ? t('host_needs_more')
-                      : `${players.length} ${t('host_ready')}`}
+                  <p className="text-indigo-200/70 text-sm">
+                    {allPlayers.length < 3
+                      ? `Kutish kerak (kamida 3 tasi. Hozir: ${allPlayers.length})`
+                      : `${allPlayers.length} odam ulandi! O'yinni boshlashga tayyormiz!`}
                   </p>
                   <button
                     onClick={startGame}
-                    disabled={players.length < 3 || actionLoading}
-                    className="btn-primary w-full text-lg"
+                    disabled={allPlayers.length < 3 || actionLoading}
+                    className="btn-primary w-full text-lg shadow-xl"
                   >
                     {actionLoading ? t('loading') : t('host_start_btn')}
                   </button>
                 </div>
-              )}
-
-              {room.phase === 'night' && (
-                <div className="space-y-3">
-                  <p className="text-gray-400 text-sm">
-                    {t('host_night_wait')}
-                  </p>
-                  <button
-                    onClick={resolveNight}
-                    disabled={actionLoading}
-                    className={`btn-primary w-full ${nightActionsComplete ? '' : 'opacity-70'}`}
-                  >
-                    {actionLoading ? t('loading') : t('host_night_btn')}
-                  </button>
-                </div>
-              )}
-
-              {room.phase === 'day' && (
-                <div className="space-y-3">
-                  <p className="text-gray-400 text-sm">
-                    {t('host_day_wait')}
-                  </p>
-                  <button
-                    onClick={resolveDay}
-                    disabled={actionLoading}
-                    className="btn-primary w-full"
-                  >
-                    {actionLoading ? t('loading') : t('host_day_btn')}
-                  </button>
-                </div>
-              )}
-
-              {room.phase === 'ended' && (
-                <div className="space-y-3">
-                  <button onClick={resetGame} className="btn-primary w-full">
-                    🔄 {t('host_replay_btn')}
-                  </button>
-                  <button onClick={() => router.push('/')} className="btn-secondary w-full">
-                    🏠 {t('host_home_btn')}
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {room.phase === 'day' && room.lastNightResult?.checkedId && (
-              <div className="card border-yellow-800/50">
-                <h2 className="text-lg font-bold text-yellow-400 mb-3">{t('host_comm_res')}</h2>
-                {(() => {
-                  const checkedPlayer = players.find(p => p.id === room.lastNightResult?.checkedId);
-                  return (
-                    <p className="text-gray-300">
-                      <span className="font-bold text-white">{checkedPlayer?.name}</span>
-                      {' '} — {' '}
-                      <span className={room.lastNightResult?.checkedIsMafia ? 'text-red-400 font-bold' : 'text-green-400 font-bold'}>
-                        {room.lastNightResult?.checkedIsMafia ? t('host_comm_mafia') : t('host_comm_cit')}
-                      </span>
-                    </p>
-                  );
-                })()}
               </div>
             )}
 
             <GameLog log={room.log || []} />
-
-            {room.phase !== 'lobby' && room.settings && (
-              <div className="card">
-                <h2 className="text-lg font-bold text-white mb-3">📋 {t('host_settings')}</h2>
-                <div className="text-sm space-y-1 text-gray-400">
-                  <p>{t('host_set_total')}: <span className="text-white">{players.length}</span></p>
-                  <p>{t('host_set_mafia')}: <span className="text-red-400">{room.settings.mafiaCount}</span></p>
-                  <p>{t('host_set_doc')}: <span className={room.settings.hasDoctor ? 'text-green-400' : 'text-gray-600'}>
-                    {room.settings.hasDoctor ? t('host_set_yes') : t('host_set_no')}
-                  </span></p>
-                  <p>{t('host_set_comm')}: <span className={room.settings.hasCommissioner ? 'text-yellow-400' : 'text-gray-600'}>
-                    {room.settings.hasCommissioner ? t('host_set_yes') : t('host_set_no')}
-                  </span></p>
-                  <p>{t('round')}: <span className="text-white">{room.round}</span></p>
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </div>
