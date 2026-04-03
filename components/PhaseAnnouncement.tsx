@@ -2,6 +2,7 @@
 
 import { Phase, NightResult, Player } from '@/types/game';
 import { useEffect, useState } from 'react';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
 
 interface PhaseAnnouncementProps {
   phase: Phase;
@@ -12,6 +13,7 @@ interface PhaseAnnouncementProps {
 
 export default function PhaseAnnouncement({ phase, round, lastNightResult, players = [] }: PhaseAnnouncementProps) {
   const [showResult, setShowResult] = useState(false);
+  const { t } = useLanguage();
 
   useEffect(() => {
     if (phase === 'day' && lastNightResult) {
@@ -24,7 +26,6 @@ export default function PhaseAnnouncement({ phase, round, lastNightResult, playe
   if (phase === 'night') {
     return (
       <div className="bg-gray-900 border border-indigo-900/50 rounded-xl p-6 shadow-[0_0_30px_rgba(30,27,75,0.4)] relative overflow-hidden">
-        {/* Animated stars background */}
         <div className="absolute inset-0 opacity-20 pointer-events-none">
           {Array.from({ length: 20 }).map((_, i) => (
             <div 
@@ -41,35 +42,31 @@ export default function PhaseAnnouncement({ phase, round, lastNightResult, playe
         
         <div className="relative z-10 text-center animate-slide-up">
           <div className="text-6xl mb-3">🌙</div>
-          <h2 className="text-3xl font-bold text-indigo-300 mb-2">Tun Tushdi</h2>
-          <p className="text-gray-400">Tur: {round}</p>
-          <p className="mt-4 text-indigo-200">Shahar uxlamoqda. Mafiya hududni aylanmoqda...</p>
+          <h2 className="text-3xl font-bold text-indigo-300 mb-2">{t('phase_night_title')}</h2>
+          <p className="text-gray-400">{t('round')}: {round}</p>
+          <p className="mt-4 text-indigo-200">{t('phase_night_desc')}</p>
         </div>
       </div>
     );
   }
 
   if (phase === 'day') {
-    // Determine last night result texts
     let resultIcon = '☀️';
-    let resultTitle = 'Tong Otdi';
-    let resultMsg = 'Shahar uyg\'ondi.';
+    let resultTitle = t('phase_day_peace');
+    let resultMsg = t('phase_day_peace_msg');
     let isBad = false;
 
     if (lastNightResult) {
       if (lastNightResult.killedId) {
         const killedPlayer = players.find(p => p.id === lastNightResult.killedId);
         resultIcon = '💀';
-        resultTitle = 'Qotillik!';
-        resultMsg = `Tun o'zinga xos bo'lmadi. ${killedPlayer?.name || 'Kimgadir'} suiqasd uyushtirildi.`;
+        resultTitle = t('phase_day_kill');
+        resultMsg = t('phase_day_kill_msg', { name: killedPlayer?.name || 'Kimgadir' });
         isBad = true;
       } else if (lastNightResult.savedById) {
         resultIcon = '💚';
-        resultTitle = 'Shifokor Mo\'jizasi';
-        resultMsg = 'Kimdir o\'lim yoqasidan qutqarib qolindi!';
-      } else {
-        resultIcon = '🌅';
-        resultMsg = 'Tong otdi, hech qanday qurbonlar yo\'q.';
+        resultTitle = t('phase_day_save');
+        resultMsg = t('phase_day_save_msg');
       }
     }
 
@@ -85,13 +82,13 @@ export default function PhaseAnnouncement({ phase, round, lastNightResult, playe
                 {resultTitle}
               </h2>
               <p className={isBad ? 'text-red-200' : 'text-amber-200'}>{resultMsg}</p>
-              <div className="mt-4 text-sm text-gray-500">Muhokama vaqtini boshlang</div>
+              <div className="mt-4 text-sm text-gray-500">{t('phase_day_start')}</div>
             </div>
           ) : (
             <div className="animate-fade-in">
               <div className="text-6xl mb-3">☀️</div>
-              <h2 className="text-3xl font-bold text-amber-400 mb-2">Kun {round}</h2>
-              <p className="text-amber-200/70">O'zaro kelishib, jinoyatchini topish vaqti keldi.</p>
+              <h2 className="text-3xl font-bold text-amber-400 mb-2">{t('phase_day_title')} {round}</h2>
+              <p className="text-amber-200/70">{t('phase_day_desc')}</p>
             </div>
           )}
         </div>

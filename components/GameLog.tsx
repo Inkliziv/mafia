@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
 
 interface GameLogProps {
   log: string[];
@@ -8,6 +9,7 @@ interface GameLogProps {
 
 export default function GameLog({ log }: GameLogProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const { t } = useLanguage();
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -34,7 +36,7 @@ export default function GameLog({ log }: GameLogProps) {
   return (
     <div className="card flex flex-col h-full max-h-[400px]">
       <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-        <span>📜</span> O'yin Tarixi
+        <span>📜</span> {t('log_title')}
       </h2>
       
       <div 
@@ -42,7 +44,7 @@ export default function GameLog({ log }: GameLogProps) {
         className="flex-1 overflow-y-auto scrollbar-thin space-y-2 pr-2"
       >
         {log.length === 0 ? (
-          <p className="text-gray-500 italic text-sm text-center mt-4">Tarix bo'sh...</p>
+          <p className="text-gray-500 italic text-sm text-center mt-4">{t('log_empty')}</p>
         ) : (
           log.map((message, index) => (
             <div 

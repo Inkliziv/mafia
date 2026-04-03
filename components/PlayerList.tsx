@@ -1,7 +1,8 @@
 'use client';
 
 import { Player, Phase } from '@/types/game';
-import { getRoleColor, getRoleLabel, getRoleBgColor } from '@/lib/gameLogic';
+import { getRoleColor, getRoleLabel } from '@/lib/gameLogic';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
 
 interface PlayerListProps {
   players: Player[];
@@ -22,7 +23,8 @@ export default function PlayerList({
   onPlayerClick,
   selectedPlayerId
 }: PlayerListProps) {
-  // Count votes received by each player
+  const { t } = useLanguage();
+
   const getVoteCounts = () => {
     const counts: Record<string, number> = {};
     if (!votes) return counts;
@@ -38,7 +40,6 @@ export default function PlayerList({
   return (
     <div className="space-y-2 max-h-[60vh] overflow-y-auto scrollbar-thin pr-2">
       {players.map((player) => {
-        // Find who this player voted for
         const targetVotedFor = votes ? votes[player.id] : null;
         const targetPlayer = targetVotedFor 
           ? players.find(p => p.id === targetVotedFor)
@@ -60,7 +61,6 @@ export default function PlayerList({
             `}
           >
             <div className="flex items-center gap-3">
-              {/* Avatar placeholder */}
               <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg
                 ${player.isAlive ? 'bg-gray-700 text-white' : 'bg-gray-800 text-gray-500'}`}>
                 {player.name.charAt(0).toUpperCase()}
@@ -71,35 +71,31 @@ export default function PlayerList({
                   {player.name}
                 </span>
                 
-                {/* Role badge (if showRoles is true) */}
                 {showRoles && player.role && (
                   <span className={`text-xs mt-0.5 ${getRoleColor(player.role)}`}>
-                    {getRoleLabel(player.role)}
+                    {getRoleLabel(player.role, t)}
                   </span>
                 )}
               </div>
             </div>
 
             <div className="flex items-center gap-3">
-              {/* Who they voted for */}
               {targetPlayer && currentPhase === 'day' && (
                 <div className="hidden sm:flex text-xs text-gray-500">
                   <span className="mr-1">➡️</span> {targetPlayer.name}
                 </div>
               )}
 
-              {/* Vote count dots */}
               {voteCounts[player.id] > 0 && currentPhase === 'day' && (
                 <div className="flex -space-x-1">
                   {Array.from({ length: voteCounts[player.id] }).map((_, i) => (
-                    <div key={i} className="w-4 h-4 rounded-full bg-red-500 border border-gray-900" 
-                         title={`${voteCounts[player.id]} ovoz topdi`} />
+                    <div key={i} className="w-4 h-4 rounded-full bg-red-500 border border-gray-900" />
                   ))}
                 </div>
               )}
               
               {!player.isAlive && (
-                <span className="text-xl" title="O'lgan">💀</span>
+                <span className="text-xl" title="Dead">💀</span>
               )}
             </div>
           </div>

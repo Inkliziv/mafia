@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
 
 interface QRCodeDisplayProps {
   url: string;
@@ -10,6 +11,7 @@ interface QRCodeDisplayProps {
 
 export default function QRCodeDisplay({ url, roomId }: QRCodeDisplayProps) {
   const [copied, setCopied] = useState(false);
+  const { t } = useLanguage();
 
   const copyUrl = () => {
     navigator.clipboard.writeText(url);
@@ -38,11 +40,11 @@ export default function QRCodeDisplay({ url, roomId }: QRCodeDisplayProps) {
             onClick={copyUrl}
             className="bg-gray-700 hover:bg-gray-600 text-white px-3 py-1.5 rounded text-sm transition-colors"
           >
-            {copied ? '✅ Nusxalandi' : '📋 Nusxalash'}
+            {copied ? `✅ ${t('qr_copied')}` : `📋 ${t('qr_copy')}`}
           </button>
         </div>
         <p className="mt-2 text-center text-sm text-gray-400">
-           yoki to'g'ridan-to'g'ri saytga kirib kodni ishlating
+           {t('qr_desc')}
         </p>
       </div>
     </div>

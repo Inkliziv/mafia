@@ -88,13 +88,22 @@ export function resolveMafiaVotes(mafiaVotes: Record<string, string>): string | 
   return topTargets[Math.floor(Math.random() * topTargets.length)][0];
 }
 
-export function getRoleLabel(role: Role | null): string {
+export function getRoleLabel(role: Role | null, t?: (key: string) => string): string {
+  if (!t) {
+    switch (role) {
+      case 'mafia': return 'Mafiya';
+      case 'citizen': return 'Shaharlik';
+      case 'commissioner': return 'Komissar';
+      case 'doctor': return 'Shifokor';
+      default: return 'Noma\'lum';
+    }
+  }
   switch (role) {
-    case 'mafia': return 'Mafiya';
-    case 'citizen': return 'Shaharlik';
-    case 'commissioner': return 'Komissar';
-    case 'doctor': return 'Shifokor';
-    default: return 'Noma\'lum';
+    case 'mafia': return t('role_mafia');
+    case 'citizen': return t('role_citizen');
+    case 'commissioner': return t('role_commissioner');
+    case 'doctor': return t('role_doctor');
+    default: return t('role_unknown');
   }
 }
 

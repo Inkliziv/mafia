@@ -9,6 +9,9 @@ export const metadata: Metadata = {
   },
 };
 
+import { LanguageProvider } from '@/lib/i18n/LanguageContext';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
+
 export default function RootLayout({
   children,
 }: {
@@ -17,11 +20,14 @@ export default function RootLayout({
   return (
     <html lang="uz" className="dark">
       <body className="bg-gray-950 text-gray-100 min-h-screen antialiased">
-        <div className="min-h-screen" style={{
-          backgroundImage: 'radial-gradient(ellipse at 50% 0%, rgba(127, 29, 29, 0.12) 0%, transparent 60%)'
-        }}>
-          {children}
-        </div>
+        <LanguageProvider>
+          <div className="min-h-screen" style={{
+            backgroundImage: 'radial-gradient(ellipse at 50% 0%, rgba(127, 29, 29, 0.12) 0%, transparent 60%)'
+          }}>
+            <LanguageSwitcher />
+            {children}
+          </div>
+        </LanguageProvider>
       </body>
     </html>
   );

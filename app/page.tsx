@@ -6,6 +6,7 @@ import { ref, set } from '@/lib/firebase';
 import { db } from '@/lib/firebase';
 import { calculateSettings } from '@/lib/gameLogic';
 import { GameRoom } from '@/types/game';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
 
 function generateRoomId(): string {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -27,6 +28,7 @@ function generateSecret(): string {
 
 export default function HomePage() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [hostName, setHostName] = useState('');
   const [roomCode, setRoomCode] = useState('');
   const [creating, setCreating] = useState(false);
@@ -36,11 +38,11 @@ export default function HomePage() {
   async function createRoom() {
     const name = hostName.trim();
     if (!name) {
-      setError('Iltimos, ismingizni kiriting');
+      setError(t('home_err_name'));
       return;
     }
     if (name.length > 20) {
-      setError('Ism 20 ta belgidan oshmasligi kerak');
+      setError(t('home_err_name_len'));
       return;
     }
 
@@ -50,7 +52,7 @@ export default function HomePage() {
     try {
       const roomId = generateRoomId();
       const hostSecret = generateSecret();
-      const defaultSettings = calculateSettings(4); // default placeholder
+      const defaultSettings = calculateSettings(4); 
 
       const room: GameRoom = {
         id: roomId,
@@ -69,21 +71,19 @@ export default function HomePage() {
           commissionerCheck: null,
         },
         mafiaVotes: {},
-        log: [`O'yin xonasi yaratildi. Moderator: ${name}`],
+        log: [`O'yin xonasi yaratildi. Moderator: ${name}`], // Kept internal logs as uz for simplicity
         lastNightResult: null,
       };
 
-      // Save to localStorage
       localStorage.setItem(`${roomId}_hostSecret`, hostSecret);
       localStorage.setItem(`${roomId}_hostName`, name);
 
-      // Write to Firebase
       await set(ref(db, `rooms/${roomId}`), room);
 
       router.push(`/host/${roomId}`);
     } catch (err) {
       console.error(err);
-      setError('Xona yaratishda xatolik yuz berdi. Firebase konfiguratsiyasini tekshiring.');
+      setError('Connection Error / Xatolik');
       setCreating(false);
     }
   }
@@ -91,11 +91,11 @@ export default function HomePage() {
   function joinRoom() {
     const code = roomCode.trim().toUpperCase();
     if (!code) {
-      setError('Iltimos, xona kodini kiriting');
+      setError(t('home_err_code'));
       return;
     }
     if (code.length !== 6) {
-      setError('Xona kodi 6 ta belgidan iborat bo\'lishi kerak');
+      setError(t('home_err_code'));
       return;
     }
     setJoining(true);
@@ -104,7 +104,6 @@ export default function HomePage() {
 
   return (
     <main className="min-h-screen flex flex-col items-center justify-center px-4 py-12">
-      {/* Background stars decoration */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         {Array.from({ length: 40 }).map((_, i) => (
           <div
@@ -119,43 +118,41 @@ export default function HomePage() {
         ))}
       </div>
 
-      {/* Header */}
-      <div className="text-center mb-12 animate-fade-in">
+      <div className="text-center mb-12 animate-fade-in relative z-10">
         <div className="text-7xl mb-4 animate-float">🎭</div>
         <h1 className="text-5xl font-bold text-white mb-3 text-shadow-glow tracking-wide"
             style={{ fontFamily: 'Georgia, serif' }}>
-          Mafia O&apos;yini
+          {t('home_title')}
         </h1>
         <p className="text-gray-400 text-lg">
-          Do&apos;stlar bilan onlayn mafia o&apos;ynaing
+          {t('home_subtitle')}
         </p>
         <div className="mt-3 flex justify-center gap-4 text-sm text-gray-500">
-          <span>🔴 Mafiya</span>
-          <span>🔵 Shaharlik</span>
-          <span>⭐ Komissar</span>
-          <span>💚 Shifokor</span>
+          <span>🔴 {t('role_mafia')}</span>
+          <span>🔵 {t('role_citizen')}</span>
+          <span>⭐ {t('role_commissioner')}</span>
+          <span>💚 {t('role_doctor')}</span>
         </div>
       </div>
 
       {error && (
-        <div className="mb-6 max-w-md w-full bg-red-900/40 border border-red-700 text-red-300 px-4 py-3 rounded-lg text-sm animate-fade-in">
+        <div className="mb-6 z-10 max-w-md w-full bg-red-900/40 border border-red-700 text-red-300 px-4 py-3 rounded-lg text-sm animate-fade-in">
           ⚠️ {error}
         </div>
       )}
 
-      <div className="w-full max-w-md space-y-6">
-        {/* Create Game */}
+      <div className="w-full max-w-md space-y-6 relative z-10">
         <div className="card animate-slide-up">
           <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-            <span>🏠</span> Yangi O&apos;yin Ochish
+            <span>🏠</span> {t('home_create_title')}
           </h2>
           <p className="text-gray-400 text-sm mb-4">
-            Moderator sifatida yangi o&apos;yin xonasi oching va o&apos;yinchilarga QR kod yoki xona kodi ulashing.
+            {t('home_create_desc')}
           </p>
           <div className="space-y-3">
             <input
               type="text"
-              placeholder="Moderator ismi..."
+              placeholder={t('home_host_name')}
               value={hostName}
               onChange={(e) => setHostName(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && createRoom()}
@@ -173,34 +170,32 @@ export default function HomePage() {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                   </svg>
-                  Yaratilmoqda...
+                  {t('home_creating')}
                 </span>
               ) : (
-                '+ Yangi O\'yin Ochish'
+                t('home_create_btn')
               )}
             </button>
           </div>
         </div>
 
-        {/* Divider */}
         <div className="flex items-center gap-3">
           <div className="flex-1 h-px bg-gray-800" />
-          <span className="text-gray-600 text-sm">yoki</span>
+          <span className="text-gray-600 text-sm">{t('home_or')}</span>
           <div className="flex-1 h-px bg-gray-800" />
         </div>
 
-        {/* Join Game */}
         <div className="card animate-slide-up" style={{ animationDelay: '0.1s' }}>
           <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-            <span>🎮</span> O&apos;yinga Qo&apos;shilish
+            <span>🎮</span> {t('home_join_title')}
           </h2>
           <p className="text-gray-400 text-sm mb-4">
-            Moderatordan xona kodini oling yoki QR kodni skanlang.
+            {t('home_join_desc')}
           </p>
           <div className="space-y-3">
             <input
               type="text"
-              placeholder="Xona kodi (masalan: AB12CD)"
+              placeholder={t('home_room_code')}
               value={roomCode}
               onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
               onKeyDown={(e) => e.key === 'Enter' && joinRoom()}
@@ -212,16 +207,15 @@ export default function HomePage() {
               disabled={joining || roomCode.trim().length !== 6}
               className="btn-secondary w-full text-lg border-gray-600"
             >
-              {joining ? 'Kirish...' : '→ Qo\'shilish'}
+              {joining ? t('home_joining') : t('home_join_btn')}
             </button>
           </div>
         </div>
       </div>
 
-      {/* Footer */}
-      <div className="mt-12 text-center text-gray-600 text-sm">
-        <p>3–15 o&apos;yinchi uchun mo&apos;ljallangan</p>
-        <p className="mt-1">Rolllar: Mafiya, Shaharlik, Komissar, Shifokor</p>
+      <div className="mt-12 relative z-10 text-center text-gray-600 text-sm">
+        <p>{t('home_footer_players')}</p>
+        <p className="mt-1">{t('home_footer_roles')}</p>
       </div>
     </main>
   );

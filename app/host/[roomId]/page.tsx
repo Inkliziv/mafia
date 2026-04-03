@@ -17,6 +17,7 @@ import QRCodeDisplay from '@/components/QRCodeDisplay';
 import PlayerList from '@/components/PlayerList';
 import GameLog from '@/components/GameLog';
 import PhaseAnnouncement from '@/components/PhaseAnnouncement';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
 
 export default function HostPage() {
   const params = useParams();
@@ -29,6 +30,7 @@ export default function HostPage() {
   const [error, setError] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
   const [joinUrl, setJoinUrl] = useState('');
+  const { t } = useLanguage();
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -41,7 +43,7 @@ export default function HostPage() {
 
     const unsubscribe = onValue(roomRef, (snapshot) => {
       if (!snapshot.exists()) {
-        setError('Xona topilmadi');
+        setError(t('room_not_found'));
         setLoading(false);
         return;
       }
@@ -49,7 +51,6 @@ export default function HostPage() {
       const data = snapshot.val() as GameRoom;
       setRoom(data);
 
-      // Verify host
       const storedSecret = localStorage.getItem(`${roomId}_hostSecret`);
       if (storedSecret && data.hostSecret === storedSecret) {
         setIsHost(true);
@@ -59,7 +60,7 @@ export default function HostPage() {
     });
 
     return () => off(roomRef, 'value', unsubscribe);
-  }, [roomId]);
+  }, [roomId, t]);
 
   const appendLog = useCallback((message: string) => {
     return {
@@ -71,7 +72,7 @@ export default function HostPage() {
     if (!room || !isHost) return;
     const players = Object.values(room.players);
     if (players.length < 3) {
-      alert('Kamida 3 ta o\'yinchi kerak!');
+      alert(t('host_needs_more'));
       return;
     }
 
@@ -80,7 +81,6 @@ export default function HostPage() {
       const settings = calculateSettings(players.length);
       const roleMap = assignRoles(players, settings);
 
-      // Update each player's role
       const playerUpdates: Record<string, unknown> = {};
       for (const player of players) {
         playerUpdates[`rooms/${roomId}/players/${player.id}/role`] = roleMap[player.id];
@@ -102,7 +102,7 @@ export default function HostPage() {
       });
     } catch (err) {
       console.error(err);
-      alert('Xatolik yuz berdi');
+      alert('Error');
     }
     setActionLoading(false);
   }
@@ -115,7 +115,6 @@ export default function HostPage() {
       const players = Object.values(room.players);
       const alivePlayers = players.filter(p => p.isAlive);
 
-      // Determine mafia kill target from mafiaVotes
       const mafiaKillTarget = resolveMafiaVotes(room.mafiaVotes || {});
       const doctorSave = room.nightActions?.doctorSave || null;
       const commCheck = room.nightActions?.commissionerCheck || null;
@@ -127,14 +126,13 @@ export default function HostPage() {
         const isAlive = alivePlayers.some(p => p.id === mafiaKillTarget);
         if (isAlive) {
           if (savedById) {
-            killedId = null; // Doctor saved
+            killedId = null;
           } else {
             killedId = mafiaKillTarget;
           }
         }
       }
 
-      // Check commissioner result
       let checkedIsMafia: boolean | null = null;
       if (commCheck) {
         const checkedPlayer = players.find(p => p.id === commCheck);
@@ -158,12 +156,10 @@ export default function HostPage() {
         [`rooms/${roomId}/mafiaVotes`]: {},
       };
 
-      // Kill the player if needed
       if (killedId) {
         updates[`rooms/${roomId}/players/${killedId}/isAlive`] = false;
       }
 
-      // Check win condition after kills
       const updatedPlayers = players.map(p =>
         p.id === killedId ? { ...p, isAlive: false } : p
       );
@@ -193,7 +189,7 @@ export default function HostPage() {
       await update(ref(db), updates);
     } catch (err) {
       console.error(err);
-      alert('Xatolik yuz berdi');
+      alert('Error');
     }
     setActionLoading(false);
   }
@@ -245,14 +241,14 @@ export default function HostPage() {
       await update(ref(db), updates);
     } catch (err) {
       console.error(err);
-      alert('Xatolik yuz berdi');
+      alert('Error');
     }
     setActionLoading(false);
   }
 
   async function resetGame() {
     if (!room || !isHost) return;
-    if (!confirm('O\'yinni qayta boshlashni xohlaysizmi?')) return;
+    if (!confirm('Reboot / Qayta boshlash?')) return;
 
     const players = Object.values(room.players).map(p => ({
       ...p,
@@ -284,7 +280,7 @@ export default function HostPage() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="text-4xl mb-4 animate-spin">⚙️</div>
-          <p className="text-gray-400">Yuklanmoqda...</p>
+          <p className="text-gray-400">{t('loading')}</p>
         </div>
       </div>
     );
@@ -295,9 +291,9 @@ export default function HostPage() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="card text-center max-w-md">
           <div className="text-4xl mb-4">❌</div>
-          <p className="text-red-400 mb-4">{error || 'Xona topilmadi'}</p>
+          <p className="text-red-400 mb-4">{error || t('room_not_found')}</p>
           <button onClick={() => router.push('/')} className="btn-secondary">
-            Bosh sahifaga qaytish
+            {t('back_home')}
           </button>
         </div>
       </div>
@@ -309,9 +305,9 @@ export default function HostPage() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="card text-center max-w-md">
           <div className="text-4xl mb-4">🔒</div>
-          <p className="text-red-400 mb-4">Siz moderator emassiz</p>
+          <p className="text-red-400 mb-4">Not Host / Siz moderator emassiz</p>
           <button onClick={() => router.push(`/play/${roomId}`)} className="btn-secondary">
-            O&apos;yinchi sifatida kirish
+            Play / O'ynash
           </button>
         </div>
       </div>
@@ -338,7 +334,6 @@ export default function HostPage() {
 
   return (
     <div className="min-h-screen">
-      {/* Phase background */}
       <div
         className={`fixed inset-0 transition-all duration-1000 ${room.phase === 'night' ? 'phase-night' : room.phase === 'day' ? 'phase-day' : 'bg-gray-950'
           }`}
@@ -346,61 +341,55 @@ export default function HostPage() {
       />
 
       <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
-        {/* Header */}
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-white">
-              🎭 Moderator Paneli
+              🎭 {t('host_panel')}
             </h1>
             <p className="text-gray-400 text-sm mt-1">
-              Xona: <span className="font-mono text-white font-bold tracking-widest">{roomId}</span>
+              {t('host_room')}: <span className="font-mono text-white font-bold tracking-widest">{roomId}</span>
               {' '} • {room.hostName}
             </p>
           </div>
           <div className="flex gap-2">
             {room.phase === 'ended' && (
               <button onClick={resetGame} className="btn-secondary text-sm py-2">
-                🔄 Qayta boshlash
+                🔄 {t('host_reboot')}
               </button>
             )}
           </div>
         </div>
 
-        {/* Phase announcement */}
         {(room.phase === 'night' || room.phase === 'day') && (
           <PhaseAnnouncement phase={room.phase} round={room.round} lastNightResult={room.lastNightResult} players={players} />
         )}
 
-        {/* Game ended */}
         {room.phase === 'ended' && (
           <div className={`card text-center py-8 ${room.result === 'mafia-wins' ? 'border-red-800' : 'border-green-800'}`}>
             <div className="text-6xl mb-4">{room.result === 'mafia-wins' ? '💀' : '🎉'}</div>
             <h2 className={`text-3xl font-bold mb-2 ${room.result === 'mafia-wins' ? 'text-red-400' : 'text-green-400'}`}>
-              O&apos;yin tugadi!
+              {t('host_ended')}
             </h2>
             <p className={`text-xl ${room.result === 'mafia-wins' ? 'text-red-300' : 'text-green-300'}`}>
-              {room.result === 'mafia-wins' ? 'Mafiya yutdi! 💀' : 'Shaharliklar yutdi! 🎉'}
+              {room.result === 'mafia-wins' ? t('host_win_mafia') : t('host_win_citizen')}
             </p>
           </div>
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Left column */}
           <div className="space-y-6">
-            {/* QR Code - lobby only */}
             {room.phase === 'lobby' && joinUrl && (
               <div className="card">
-                <h2 className="text-lg font-bold text-white mb-4">📱 QR Kod</h2>
+                <h2 className="text-lg font-bold text-white mb-4">📱 {t('host_qr_title')}</h2>
                 <QRCodeDisplay url={joinUrl} roomId={roomId} />
               </div>
             )}
 
-            {/* Player List with roles (God view) */}
             <div className="card">
               <h2 className="text-lg font-bold text-white mb-4 flex items-center justify-between">
-                <span>👥 O&apos;yinchilar ({players.length})</span>
+                <span>👥 {t('host_players_title')} ({players.length})</span>
                 <span className="text-sm font-normal text-gray-400">
-                  {alivePlayers.length} tirik
+                  {alivePlayers.length} {t('host_alive')}
                 </span>
               </h2>
               <PlayerList
@@ -410,44 +399,37 @@ export default function HostPage() {
                 currentPhase={room.phase}
                 highlightPlayerId={undefined}
               />
-              {players.length === 0 && (
-                <p className="text-gray-500 text-center py-4">
-                  Hali hech kim qo&apos;shilmagan...
-                </p>
-              )}
             </div>
 
-            {/* Night actions status */}
             {room.phase === 'night' && (
               <div className="card">
-                <h2 className="text-lg font-bold text-white mb-4">🌙 Tun Harakatlari</h2>
+                <h2 className="text-lg font-bold text-white mb-4">🌙 {t('host_night_actions')}</h2>
                 <div className="space-y-2 text-sm">
                   <div className={`flex items-center gap-2 p-2 rounded ${Object.keys(room.mafiaVotes || {}).length > 0 ? 'text-green-400' : 'text-gray-500'}`}>
                     {Object.keys(room.mafiaVotes || {}).length > 0 ? '✅' : '⏳'}
-                    <span>Mafiya ovoz berdi ({Object.keys(room.mafiaVotes || {}).length}/{alivePlayers.filter(p => p.role === 'mafia').length})</span>
+                    <span>{t('host_mafia_voted')} ({Object.keys(room.mafiaVotes || {}).length}/{alivePlayers.filter(p => p.role === 'mafia').length})</span>
                   </div>
                   {room.settings?.hasDoctor && alivePlayers.some(p => p.role === 'doctor') && (
                     <div className={`flex items-center gap-2 p-2 rounded ${room.nightActions?.doctorSave ? 'text-green-400' : 'text-gray-500'}`}>
                       {room.nightActions?.doctorSave ? '✅' : '⏳'}
-                      <span>Shifokor {room.nightActions?.doctorSave ? 'kimnidir qutqardi' : 'kutilmoqda'}</span>
+                      <span>{room.nightActions?.doctorSave ? t('host_doctor_done') : t('host_doctor_wait')}</span>
                     </div>
                   )}
                   {room.settings?.hasCommissioner && alivePlayers.some(p => p.role === 'commissioner') && (
                     <div className={`flex items-center gap-2 p-2 rounded ${room.nightActions?.commissionerCheck ? 'text-green-400' : 'text-gray-500'}`}>
                       {room.nightActions?.commissionerCheck ? '✅' : '⏳'}
-                      <span>Komissar {room.nightActions?.commissionerCheck ? 'tekshirdi' : 'kutilmoqda'}</span>
+                      <span>{room.nightActions?.commissionerCheck ? t('host_comm_done') : t('host_comm_wait')}</span>
                     </div>
                   )}
                 </div>
               </div>
             )}
 
-            {/* Day vote status */}
             {room.phase === 'day' && (
               <div className="card">
-                <h2 className="text-lg font-bold text-white mb-4">☀️ Ovozlar</h2>
+                <h2 className="text-lg font-bold text-white mb-4">☀️ {t('host_votes')}</h2>
                 <p className="text-gray-400 text-sm mb-3">
-                  {dayVoteCount} / {aliveCount} ovoz berildi
+                  {dayVoteCount} / {aliveCount} {t('host_votes_cast')}
                 </p>
                 <div className="w-full bg-gray-800 rounded-full h-2 mb-3">
                   <div
@@ -459,25 +441,23 @@ export default function HostPage() {
             )}
           </div>
 
-          {/* Right column */}
           <div className="space-y-6">
-            {/* Action buttons */}
             <div className="card">
-              <h2 className="text-lg font-bold text-white mb-4">🎮 Boshqaruv</h2>
+              <h2 className="text-lg font-bold text-white mb-4">🎮 {t('host_controls')}</h2>
 
               {room.phase === 'lobby' && (
                 <div className="space-y-3">
                   <p className="text-gray-400 text-sm">
                     {players.length < 3
-                      ? `Kamida 3 ta o'yinchi kerak (hozir: ${players.length})`
-                      : `${players.length} o'yinchi tayyor. O'yinni boshlashingiz mumkin!`}
+                      ? t('host_needs_more')
+                      : `${players.length} ${t('host_ready')}`}
                   </p>
                   <button
                     onClick={startGame}
                     disabled={players.length < 3 || actionLoading}
                     className="btn-primary w-full text-lg"
                   >
-                    {actionLoading ? 'Yuklanmoqda...' : '▶ O\'yinni Boshlash'}
+                    {actionLoading ? t('loading') : t('host_start_btn')}
                   </button>
                 </div>
               )}
@@ -485,14 +465,14 @@ export default function HostPage() {
               {room.phase === 'night' && (
                 <div className="space-y-3">
                   <p className="text-gray-400 text-sm">
-                    Barcha tun harakatlari tugashini kuting yoki majburan yakunlang.
+                    {t('host_night_wait')}
                   </p>
                   <button
                     onClick={resolveNight}
                     disabled={actionLoading}
                     className={`btn-primary w-full ${nightActionsComplete ? '' : 'opacity-70'}`}
                   >
-                    {actionLoading ? 'Yuklanmoqda...' : `🌅 Tunni Yakunlash${nightActionsComplete ? '' : ' (majburan)'}`}
+                    {actionLoading ? t('loading') : t('host_night_btn')}
                   </button>
                 </div>
               )}
@@ -500,14 +480,14 @@ export default function HostPage() {
               {room.phase === 'day' && (
                 <div className="space-y-3">
                   <p className="text-gray-400 text-sm">
-                    Barcha ovozlar berilgandan keyin yoki majburan yakunlang.
+                    {t('host_day_wait')}
                   </p>
                   <button
                     onClick={resolveDay}
                     disabled={actionLoading}
                     className="btn-primary w-full"
                   >
-                    {actionLoading ? 'Yuklanmoqda...' : '🗳️ Ovozlarni Hisoblash'}
+                    {actionLoading ? t('loading') : t('host_day_btn')}
                   </button>
                 </div>
               )}
@@ -515,19 +495,18 @@ export default function HostPage() {
               {room.phase === 'ended' && (
                 <div className="space-y-3">
                   <button onClick={resetGame} className="btn-primary w-full">
-                    🔄 Qayta O&apos;ynash
+                    🔄 {t('host_replay_btn')}
                   </button>
                   <button onClick={() => router.push('/')} className="btn-secondary w-full">
-                    🏠 Bosh sahifaga
+                    🏠 {t('host_home_btn')}
                   </button>
                 </div>
               )}
             </div>
 
-            {/* Commissioner check results (visible to host) */}
             {room.phase === 'day' && room.lastNightResult?.checkedId && (
               <div className="card border-yellow-800/50">
-                <h2 className="text-lg font-bold text-yellow-400 mb-3">⭐ Komissar Tekshiruvi</h2>
+                <h2 className="text-lg font-bold text-yellow-400 mb-3">{t('host_comm_res')}</h2>
                 {(() => {
                   const checkedPlayer = players.find(p => p.id === room.lastNightResult?.checkedId);
                   return (
@@ -535,7 +514,7 @@ export default function HostPage() {
                       <span className="font-bold text-white">{checkedPlayer?.name}</span>
                       {' '} — {' '}
                       <span className={room.lastNightResult?.checkedIsMafia ? 'text-red-400 font-bold' : 'text-green-400 font-bold'}>
-                        {room.lastNightResult?.checkedIsMafia ? '🔴 MAFIYA!' : '🟢 Tinch fuqaro'}
+                        {room.lastNightResult?.checkedIsMafia ? t('host_comm_mafia') : t('host_comm_cit')}
                       </span>
                     </p>
                   );
@@ -543,23 +522,21 @@ export default function HostPage() {
               </div>
             )}
 
-            {/* Game Log */}
             <GameLog log={room.log || []} />
 
-            {/* Settings info */}
             {room.phase !== 'lobby' && room.settings && (
               <div className="card">
-                <h2 className="text-lg font-bold text-white mb-3">📋 O&apos;yin sozlamalari</h2>
+                <h2 className="text-lg font-bold text-white mb-3">📋 {t('host_settings')}</h2>
                 <div className="text-sm space-y-1 text-gray-400">
-                  <p>Jami o&apos;yinchilar: <span className="text-white">{players.length}</span></p>
-                  <p>Mafiya soni: <span className="text-red-400">{room.settings.mafiaCount}</span></p>
-                  <p>Shifokor: <span className={room.settings.hasDoctor ? 'text-green-400' : 'text-gray-600'}>
-                    {room.settings.hasDoctor ? 'Bor' : 'Yo\'q'}
+                  <p>{t('host_set_total')}: <span className="text-white">{players.length}</span></p>
+                  <p>{t('host_set_mafia')}: <span className="text-red-400">{room.settings.mafiaCount}</span></p>
+                  <p>{t('host_set_doc')}: <span className={room.settings.hasDoctor ? 'text-green-400' : 'text-gray-600'}>
+                    {room.settings.hasDoctor ? t('host_set_yes') : t('host_set_no')}
                   </span></p>
-                  <p>Komissar: <span className={room.settings.hasCommissioner ? 'text-yellow-400' : 'text-gray-600'}>
-                    {room.settings.hasCommissioner ? 'Bor' : 'Yo\'q'}
+                  <p>{t('host_set_comm')}: <span className={room.settings.hasCommissioner ? 'text-yellow-400' : 'text-gray-600'}>
+                    {room.settings.hasCommissioner ? t('host_set_yes') : t('host_set_no')}
                   </span></p>
-                  <p>Tur: <span className="text-white">{room.round}</span></p>
+                  <p>{t('round')}: <span className="text-white">{room.round}</span></p>
                 </div>
               </div>
             )}
