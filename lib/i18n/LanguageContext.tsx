@@ -40,9 +40,12 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     return text;
   };
 
-  // Prevent hydration mismatch by not rendering until mounted
   if (!mounted) {
-    return <div style={{ visibility: 'hidden' }}>{children}</div>;
+    return (
+      <LanguageContext.Provider value={{ language, setLanguage, t }}>
+        <div style={{ visibility: 'hidden' }}>{children}</div>
+      </LanguageContext.Provider>
+    );
   }
 
   return (
