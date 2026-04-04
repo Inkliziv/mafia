@@ -53,6 +53,18 @@ export default function RootLayout({
             {children}
           </div>
         </LanguageProvider>
+        {/* Register Service Worker for PWA */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function() {
+                  navigator.serviceWorker.register('/sw.js').catch(function() {});
+                });
+              }
+            `,
+          }}
+        />
       </body>
     </html>
   );

@@ -1,14 +1,26 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 
 interface TimerProps {
   endTime: number;
   onExpire?: () => void;
+  onWarning?: (secondsLeft: number) => void;
 }
 
-export default function Timer({ endTime, onExpire }: TimerProps) {
+export default function Timer({ endTime, onExpire, onWarning }: TimerProps) {
   const [timeLeft, setTimeLeft] = useState(0);
+  const lastWarningRef = useRef<number>(-1);
+  const hasExpiredRef = useRef(false);
+
+  const stableOnWarning = useCallback((secs: number) => {
+    onWarning?.(secs);
+  }, [onWarning]);
+
+  useEffect(() => {
+    hasExpiredRef.current = false;
+    lastWarningRef.current = -1;
+  }, [endTime]);
 
   useEffect(() => {
     const calculateTimeLeft = () => {
@@ -16,17 +28,27 @@ export default function Timer({ endTime, onExpire }: TimerProps) {
       const difference = endTime - now;
       if (difference <= 0) {
         setTimeLeft(0);
-        if (onExpire) onExpire();
+        if (!hasExpiredRef.current) {
+          hasExpiredRef.current = true;
+          if (onExpire) onExpire();
+        }
         return;
       }
-      setTimeLeft(Math.ceil(difference / 1000));
+      const secs = Math.ceil(difference / 1000);
+      setTimeLeft(secs);
+
+      // Trigger warning for last 5 seconds
+      if (secs <= 5 && secs > 0 && secs !== lastWarningRef.current) {
+        lastWarningRef.current = secs;
+        stableOnWarning(secs);
+      }
     };
 
     calculateTimeLeft(); // Initial calc
     const interval = setInterval(calculateTimeLeft, 1000);
 
     return () => clearInterval(interval);
-  }, [endTime, onExpire]);
+  }, [endTime, onExpire, stableOnWarning]);
 
   if (timeLeft <= 0) {
     return (
@@ -42,13 +64,16 @@ export default function Timer({ endTime, onExpire }: TimerProps) {
   const seconds = timeLeft % 60;
   
   const isWarning = timeLeft <= 30;
+  const isCritical = timeLeft <= 5;
 
   return (
     <div className="flex justify-center my-4">
       <div className={`px-6 py-3 rounded-full font-mono text-3xl font-bold border transition-colors ${
-        isWarning 
-          ? 'bg-red-950/80 text-red-400 border-red-500 animate-pulse' 
-          : 'bg-gray-900 text-amber-400 border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.2)]'
+        isCritical
+          ? 'bg-red-950/80 text-red-400 border-red-500 animate-heartbeat-pulse shadow-[0_0_25px_rgba(239,68,68,0.4)]'
+          : isWarning 
+            ? 'bg-red-950/80 text-red-400 border-red-500 animate-pulse' 
+            : 'bg-gray-900 text-amber-400 border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.2)]'
       }`}>
         {minutes.toString().padStart(2, '0')}:{seconds.toString().padStart(2, '0')}
       </div>

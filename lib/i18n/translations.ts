@@ -122,7 +122,29 @@ export const translations = {
     phase_day_peace_msg: "Tong otdi, hech qanday qurbonlar yo'q.",
     phase_day_start: "Muhokama vaqtini boshlang",
     phase_day_title: "Kun",
-    phase_day_desc: "O'zaro kelishib, jinoyatchini topish vaqti keldi."
+    phase_day_desc: "O'zaro kelishib, jinoyatchini topish vaqti keldi.",
+
+    // PWA Install
+    pwa_install_btn: "📲 O'yinni Yuklab Olish",
+    pwa_install_desc: "Telefoningizga ilovadek o'rnating — tez va qulay!",
+    pwa_installed: "✅ Allaqachon o'rnatilgan",
+    pwa_install_hint: "💡 Google Chrome yoki Safari orqali kiring — \"Yuklab olish\" tugmasi faqat shu brauzerlarda ishlaydi.",
+
+    // Effects Toggle
+    effects_enable: "🔊 Ovoz va Effektlarni Yoqish",
+    effects_enabled: "✅ Effektlar yoqilgan",
+
+    // Role Card
+    role_card_tap: "Rolingizni ko'rish uchun kartani bosing",
+    role_card_title: "Sizning Rolingiz",
+    role_card_mission: "Vazifangiz",
+    role_mission_mafia: "Kechasi qurbon tanlaysiz. Kunduz fuqaro bo'lib ko'rining.",
+    role_mission_citizen: "Mafiyani toping va kunduzi ovoz bering. Ehtiyot bo'ling!",
+    role_mission_commissioner: "Kechasi birortasini tekshiring — mafiyami yoki yo'qmi?",
+    role_mission_doctor: "Kechasi birortani davolang — hayotini saqlang.",
+
+    // Heartbeat
+    heartbeat_warning: "⏳ Vaqt tugamoqda!"
   },
   ru: {
     // Roles
@@ -245,6 +267,28 @@ export const translations = {
     phase_day_peace_msg: "Город просыпается, жертв нет.",
     phase_day_start: "Начните обсуждение",
     phase_day_title: "День",
-    phase_day_desc: "Пришло время найти преступника."
+    phase_day_desc: "Пришло время найти преступника.",
+
+    // PWA Install
+    pwa_install_btn: "📲 Установить игру",
+    pwa_install_desc: "Установите как приложение — быстро и удобно!",
+    pwa_installed: "✅ Уже установлено",
+    pwa_install_hint: "💡 Откройте через Google Chrome или Safari — кнопка \"Установить\" работает только в этих браузерах.",
+
+    // Effects Toggle
+    effects_enable: "🔊 Включить звуки и эффекты",
+    effects_enabled: "✅ Эффекты включены",
+
+    // Role Card
+    role_card_tap: "Нажмите на карту, чтобы увидеть роль",
+    role_card_title: "Ваша Роль",
+    role_card_mission: "Задача",
+    role_mission_mafia: "Ночью выбирайте жертву. Днём притворяйтесь мирным.",
+    role_mission_citizen: "Найдите мафию и голосуйте днём. Будьте осторожны!",
+    role_mission_commissioner: "Ночью проверяйте — мафия это или нет?",
+    role_mission_doctor: "Ночью лечите кого-то — спасайте жизнь.",
+
+    // Heartbeat
+    heartbeat_warning: "⏳ Время заканчивается!"
   }
 };

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { db, ref, onValue, off, update, set } from '@/lib/firebase';
 import { GameRoom, Player } from '@/types/game';
@@ -8,7 +8,8 @@ import { getRoleLabel, getRoleColor } from '@/lib/gameLogic';
 import PlayerList from '@/components/PlayerList';
 import PhaseAnnouncement from '@/components/PhaseAnnouncement';
 import Timer from '@/components/Timer';
-import { audio } from '@/lib/sounds';
+import RoleCard from '@/components/RoleCard';
+import { audio, vibrateRoleAssigned, vibrateDeath, vibrateTimerPulse } from '@/lib/sounds';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 
 export default function PlayPage() {
@@ -25,10 +26,46 @@ export default function PlayPage() {
   
   const [selectedTarget, setSelectedTarget] = useState<string | null>(null);
 
+  // ✨ Role card state
+  const [showRoleCard, setShowRoleCard] = useState(false);
+  const roleCardShownRef = useRef<string>(''); // tracks which phase+round combo we showed card for
+
+  // Track previous phase for vibrateDeath
+  const prevPhaseRef = useRef<string>('');
+  const prevAliveRef = useRef<boolean>(true);
+
   useEffect(() => {
     if (room?.phase === 'night') audio.playNightSound();
     if (room?.phase === 'day') audio.playDaySound();
   }, [room?.phase]);
+
+  // ✨ Show role card when game transitions from lobby → night (first round)
+  useEffect(() => {
+    if (!room || !playerId || !room.players?.[playerId]) return;
+    const me = room.players[playerId];
+
+    // Show role card on first night (when roles get assigned)
+    if (room.phase === 'night' && me.role) {
+      const cardKey = `${room.phase}-${room.round}`;
+      if (room.round === 1 && roleCardShownRef.current !== cardKey) {
+        roleCardShownRef.current = cardKey;
+        setShowRoleCard(true);
+      }
+    }
+  }, [room?.phase, room?.round, room?.players, playerId]);
+
+  // 📳 Vibrate when player dies
+  useEffect(() => {
+    if (!room || !playerId || !room.players?.[playerId]) return;
+    const me = room.players[playerId];
+
+    // Detect death transition
+    if (prevAliveRef.current && !me.isAlive) {
+      vibrateDeath();
+    }
+    prevAliveRef.current = me.isAlive;
+    prevPhaseRef.current = room.phase;
+  }, [room?.phase, room?.players, playerId]);
 
   useEffect(() => {
     const roomRef = ref(db, `rooms/${roomId}`);
@@ -56,6 +93,12 @@ export default function PlayPage() {
   useEffect(() => {
     setSelectedTarget(null);
   }, [room?.phase, room?.round]);
+
+  // 🥁 Heartbeat + vibration on timer warning
+  const handleTimerWarning = useCallback((secondsLeft: number) => {
+    audio.playHeartbeat(secondsLeft);
+    vibrateTimerPulse();
+  }, []);
 
   const joinGame = async () => {
     const name = playerName.trim();
@@ -190,6 +233,15 @@ export default function PlayPage() {
     <div className={`min-h-screen pb-24 transition-colors duration-1000 ${
       room.phase === 'night' ? 'phase-night' : room.phase === 'day' ? 'phase-day' : 'bg-gray-950'
     }`}>
+      {/* ✨ Cinematic Role Card Overlay */}
+      {showRoleCard && me.role && (
+        <RoleCard
+          role={me.role}
+          playerName={me.name}
+          onDismiss={() => setShowRoleCard(false)}
+        />
+      )}
+
       <div className="bg-gray-900/80 backdrop-blur-md sticky top-0 z-50 border-b border-gray-800 p-3 shadow-lg">
         <div className="max-w-md mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -251,11 +303,11 @@ export default function PlayPage() {
           <PhaseAnnouncement phase={room.phase} round={room.round} lastNightResult={room.lastNightResult} players={allPlayers} />
         )}
 
-        {/* Countdown Timer for day phase */}
+        {/* Countdown Timer for day phase — with heartbeat on warning */}
         {room.phase === 'day' && room.dayEndsAt && me.isAlive && (
           <div className="text-center">
             <p className="text-xs uppercase tracking-widest text-gray-500 mb-1">Muhokama vaqti</p>
-            <Timer endTime={room.dayEndsAt} />
+            <Timer endTime={room.dayEndsAt} onWarning={handleTimerWarning} />
           </div>
         )}
 
@@ -294,13 +346,13 @@ export default function PlayPage() {
               <p className="text-gray-400 text-center py-6">{t('play_cit_desc')}</p>
             ) : (
               <>
-                {/* Night countdown timer */}
+                {/* Night countdown timer — with heartbeat */}
                 {room.nightEndsAt && (
                   <div className="mb-4">
                     <p className="text-xs text-center uppercase tracking-widest text-gray-500 mb-1">
                       {me.role === 'mafia' ? '⏱ Qurbon tanlash vaqti' : '⏱ Harakat vaqti'}
                     </p>
-                    <Timer endTime={room.nightEndsAt} />
+                    <Timer endTime={room.nightEndsAt} onWarning={handleTimerWarning} />
                   </div>
                 )}
                 <p className="text-sm text-gray-400 mb-4">{t('play_action_desc')}</p>
